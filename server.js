@@ -6,8 +6,6 @@ require('dotenv').config(); // Load environment variables from .env file
 const app = express();
 const port = process.env.PORT || 3000;
 
-// GitHub API endpoint to get the first 15 users
-const githubApiUrl = 'https://api.github.com/users';
 
 // Middleware to handle CORS (Cross-Origin Resource Sharing)
 app.use((req, res, next) => {
@@ -22,29 +20,27 @@ app.use((req, res, next) => {
 
 // Route to fetch the first 15 GitHub users
 app.get('/search', async (req, res) => {
-  const searchTerm = req.query.term; // Get the search term from the query parameter
+  const query = req.query.q; // Get the search term from the query parameter
+  // GitHub API endpoint to get the first 15 users
+  const githubApiUrl = 'https://api.github.com/search/users?q=${query}+in:login&sort=followers&order=desc';
+
+   
   try {
-    const response = await axios.get(`${githubApiUrl}?per_page=15`, {
+    const response = await fetch(apiUrl, {
       headers: {
         Authorization: `token ${process.env.GITHUB_TOKEN}`,
       },
     });
 
-    const users = response.data;
     
-    // Filter users whose names have the search term as a prefix or suffix
-    const filteredUsers = users.filter(user => {
-      const lowerCaseName = user.login.toLowerCase();
-      const lowerCaseTerm = searchTerm.toLowerCase();
-      return lowerCaseName.startsWith(lowerCaseTerm) || lowerCaseName.endsWith(lowerCaseTerm);
-    });
-
-    // Sort filtered users by followers (you can choose 'followers' or any other criteria)
-    const sortedUsers = filteredUsers.sort((a, b) => b.followers - a.followers).slice(0, 15);
-
-    res.json(sortedUsers);
+    if (response.ok) {
+      const data = await response.json();
+      res.json(data.items.slice(0, 15)); // Send the first 15 users to the frontend
+    } else {
+      throw new Error('Failed to fetch GitHub users');
+    }
   } catch (error) {
-    console.error('Error fetching GitHub users:', error);
-    res.status(500).json({ error: 'Unable to fetch GitHub users' });
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
