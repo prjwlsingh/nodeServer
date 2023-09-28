@@ -6,7 +6,6 @@ require('dotenv').config(); // Load environment variables from .env file
 const app = express();
 const port = process.env.PORT || 3000;
 
-
 // Middleware to handle CORS (Cross-Origin Resource Sharing)
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
@@ -22,19 +21,17 @@ app.use((req, res, next) => {
 app.get('/search', async (req, res) => {
   const query = req.query.q; // Get the search term from the query parameter
   // GitHub API endpoint to get the first 15 users
-  const githubApiUrl = 'https://api.github.com/search/users?q=${query}+in:login&sort=followers&order=desc';
+  const githubApiUrl = `https://api.github.com/search/users?q=${query}+in:login&sort=followers&order=desc`;
 
-   
   try {
-    const response = await fetch(apiUrl, {
+    const response = await axios.get(githubApiUrl, {
       headers: {
         Authorization: `token ${process.env.GITHUB_TOKEN}`,
       },
     });
 
-    
-    if (response.ok) {
-      const data = await response.json();
+    if (response.status === 200) {
+      const data = response.data;
       res.json(data.items.slice(0, 15)); // Send the first 15 users to the frontend
     } else {
       throw new Error('Failed to fetch GitHub users');
@@ -43,4 +40,8 @@ app.get('/search', async (req, res) => {
     console.error(error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
+});
+
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
 });
